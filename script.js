@@ -46,6 +46,13 @@ document.querySelector("#btn-login").addEventListener("click", () => {
   if (clienteEncontrado) {
     usuarioLogado = clienteEncontrado;
     loginErro.style.display = "none";
+
+    const primeiroNome = clienteEncontrado.nome.split(" ")[0];
+    const agora = new Date().toLocaleString("pt-BR");
+    salvarCookie("senac_cpf", clienteEncontrado.cpf, 30);
+    salvarCookie("senac_nome", primeiroNome, 30);
+    salvarCookie("senac_ultimo_acesso", agora, 30);
+
     secaoLogin.style.display = "none";
     secaoPainel.style.display = "block";
 
@@ -198,3 +205,61 @@ if (btnLimparRascunho) {
     }
   });
 }
+
+// Funções auxiliares de cookies (salvar, ler, apagar)
+function salvarCookie(nome, valor, dias) {
+  const d = new Date();
+  d.setTime(d.getTime() + dias * 24 * 60 * 60 * 1000);
+  const expires = "expires=" + d.toUTCString();
+  document.cookie =
+    nome + "=" + encodeURIComponent(valor) + ";" + expires + ";path=/";
+}
+
+function lerCookie(nome) {
+  const nameEQ = nome + "=";
+  const ca = document.cookie.split(";");
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) == " ") c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) == 0) {
+      return decodeURIComponent(c.substring(nameEQ.length, c.length));
+    }
+  }
+  return null;
+}
+
+function apagarCookie(nome) {
+  document.cookie = nome + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+}
+
+// 13. Leitura de cookies na inicialização da página
+function verificarReconhecimento() {
+  const cpfSalvo = lerCookie("senac_cpf");
+  const nomeSalvo = lerCookie("senac_nome");
+  const ultimoAcesso = lerCookie("senac_ultimo_acesso");
+  const subtitulo = document.querySelector("#login-section .subtitle");
+
+  if (cpfSalvo && nomeSalvo && subtitulo) {
+    document.querySelector("#input-cpf").value = cpfSalvo;
+    subtitulo.innerHTML = `Que bom ter você de volta, <strong>${nomeSalvo}</strong>!<br>
+<small style="color: #6c757d;">Último acesso: ${ultimoAcesso}</small><br>
+<a href="#" id="link-trocar-usuario" style="font-size: 0.75rem; color: #0056b3; font-weight: bold;">
+Não é você? Trocar de conta
+</a>`;
+    document.querySelector("#input-senha").focus();
+    document.querySelector("#link-trocar-usuario").addEventListener("click", (e) => {
+      e.preventDefault();
+      apagarCookie("senac_cpf");
+      apagarCookie("senac_nome");
+      apagarCookie("senac_ultimo_acesso");
+      document.querySelector("#input-cpf").value = "";
+      document.querySelector("#input-senha").value = "";
+      subtitulo.textContent = "Portal do Cliente";
+      document.querySelector("#input-cpf").focus();
+    });
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  verificarReconhecimento();
+});
